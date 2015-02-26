@@ -2089,6 +2089,9 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
     if(!isUpgradeFinalized()) {
       return true;
     }
+    if (isRollingUpgrade()) {
+      return true;
+    }
     return file.isBlockInLatestSnapshot(blk);
   }
 
