@@ -578,11 +578,22 @@ public class BlockManager {
     return maxReplicationStreams;
   }
 
-  /**
-   * @return true if the block has minimum replicas
-   */
-  public boolean checkMinReplication(Block block) {
-    return (countNodes(block).liveReplicas() >= minReplication);
+  public int getDefaultStorageNum(BlockInfo block) {
+    return block.isStriped() ?
+        ((BlockInfoStriped) block).getTotalBlockNum() : defaultReplication;
+  }
+
+  public short getMinStorageNum(BlockInfo block) {
+    return block.isStriped() ?
+        ((BlockInfoStriped) block).getDataBlockNum() : minReplication;
+  }
+
+  public boolean checkMinStorage(BlockInfo block) {
+    return countNodes(block).liveReplicas() >= getMinStorageNum(block);
+  }
+
+  public boolean checkMinStorage(BlockInfo block, int liveNum) {
+    return liveNum >= getMinStorageNum(block);
   }
 
   /**
@@ -626,7 +637,7 @@ public class BlockManager {
       return false; // already completed (e.g. by syncBlock)
     
     final boolean b = commitBlock(lastBlock, commitBlock);
-    if (countNodes(lastBlock).liveReplicas() >= minReplication) {
+    if (checkMinStorage(lastBlock)) {
       completeBlock(bc, bc.numBlocks() - 1, false);
     }
     return b;
@@ -650,7 +661,7 @@ public class BlockManager {
     }
 
     int numNodes = curBlock.numNodes();
-    if (!force && numNodes < minReplication) {
+    if (!force && !checkMinStorage(curBlock, numNodes)) {
       throw new IOException("Cannot complete block: " +
           "block does not satisfy minimal replication requirement.");
     }
@@ -694,9 +705,8 @@ public class BlockManager {
    * when tailing edit logs as a Standby.
    */
   public BlockInfo forceCompleteBlock(final BlockCollection bc,
-      final BlockInfoContiguousUnderConstruction block) throws IOException {
-    // TODO: support BlockInfoStripedUC for editlog
-    block.commitBlock(block);
+      final BlockInfo block) throws IOException {
+    BlockInfo.commitBlock(block, block);
     return completeBlock(bc, block, true);
   }
 
@@ -747,7 +757,7 @@ public class BlockManager {
     // count in safe-mode.
     namesystem.adjustSafeModeBlockTotals(
         // decrement safe if we had enough
-        targets.length >= minReplication ? -1 : 0,
+        checkMinStorage(oldBlock, targets.length) ? -1 : 0,
         // always decrement total blocks
         -1);
 
@@ -1191,8 +1201,8 @@ public class BlockManager {
     NumberReplicas numberOfReplicas = countNodes(b.stored);
     boolean hasEnoughLiveReplicas = numberOfReplicas.liveReplicas() >= bc
         .getBlockReplication();
-    boolean minReplicationSatisfied =
-        numberOfReplicas.liveReplicas() >= minReplication;
+    boolean minReplicationSatisfied = checkMinStorage(b.stored,
+        numberOfReplicas.liveReplicas());
     boolean hasMoreCorruptReplicas = minReplicationSatisfied &&
         (numberOfReplicas.liveReplicas() + numberOfReplicas.corruptReplicas()) >
         bc.getBlockReplication();
@@ -2412,7 +2422,7 @@ public class BlockManager {
     // Now check for completion of blocks and safe block count
     int numCurrentReplica = countLiveNodes(storedBlock);
     if (storedBlock.getBlockUCState() == BlockUCState.COMMITTED
-        && numCurrentReplica >= minReplication) {
+        && checkMinStorage(storedBlock, numCurrentReplica)) {
       completeBlock(storedBlock.getBlockCollection(), storedBlock, false);
     } else if (storedBlock.isComplete()) {
       // check whether safe replication is reached for the block
@@ -2490,7 +2500,7 @@ public class BlockManager {
       + pendingReplications.getNumReplicas(storedBlock);
 
     if(storedBlock.getBlockUCState() == BlockUCState.COMMITTED &&
-        numLiveReplicas >= minReplication) {
+        checkMinStorage(storedBlock, numLiveReplicas)) {
       storedBlock = completeBlock(bc, storedBlock, false);
     } else if (storedBlock.isComplete() && result == AddBlockResult.ADDED) {
       // check whether safe replication is reached for the block
@@ -3160,6 +3170,8 @@ public class BlockManager {
   /**
    * Return the number of nodes hosting a given block, grouped
    * by the state of those replicas.
+   * For a striped block, this includes nodes storing blocks belonging to the
+   * striped block group.
    */
   public NumberReplicas countNodes(Block b) {
     int decommissioned = 0;
@@ -3269,15 +3281,17 @@ public class BlockManager {
    * Return true if there are any blocks on this node that have not
    * yet reached their replication factor. Otherwise returns false.
    */
+  // TODO check the DN decommission logic for EC blocks
   boolean isReplicationInProgress(DatanodeDescriptor srcNode) {
     boolean status = false;
     boolean firstReplicationLog = true;
     int underReplicatedBlocks = 0;
     int decommissionOnlyReplicas = 0;
     int underReplicatedInOpenFiles = 0;
-    final Iterator<? extends Block> it = srcNode.getBlockIterator();
+    final Iterator<BlockInfo> it = srcNode.getBlockIterator();
     while(it.hasNext()) {
-      final Block block = it.next();
+      final BlockInfo block = it.next();
+      final short minStorage = getMinStorageNum(block);
       BlockCollection bc = blocksMap.getBlockCollection(block);
 
       if (bc != null) {
@@ -3288,7 +3302,7 @@ public class BlockManager {
         if (isNeededReplication(block, curExpectedReplicas, curReplicas)) {
           if (curExpectedReplicas > curReplicas) {
             if (bc.isUnderConstruction()) {
-              if (block.equals(bc.getLastBlock()) && curReplicas > minReplication) {
+              if (block.equals(bc.getLastBlock()) && curReplicas > minStorage) {
                 continue;
               }
               underReplicatedInOpenFiles++;
@@ -3301,7 +3315,7 @@ public class BlockManager {
                 logBlockReplicationInfo(block, srcNode, num);
               }
               // Allowing decommission as long as default replication is met
-              if (curReplicas >= defaultReplication) {
+              if (curReplicas >= getDefaultStorageNum(block)) {
                 status = false;
                 firstReplicationLog = false;
               }
@@ -3389,7 +3403,7 @@ public class BlockManager {
     BlockInfo info = null;
     if (BlockIdManager.isStripedBlockID(block.getBlockId())) {
       info = blocksMap.getStoredBlock(
-          new Block(BlockIdManager.convertToGroupID(block.getBlockId())));
+          new Block(BlockIdManager.convertToStripedID(block.getBlockId())));
     }
     if (info == null) {
       info = blocksMap.getStoredBlock(block);
