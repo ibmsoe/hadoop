@@ -18,9 +18,6 @@
 
 package org.apache.hadoop.registry.secure;
 
-
-
-import com.sun.security.auth.module.Krb5LoginModule;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.security.HadoopKerberosName;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -48,6 +45,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
+import javax.security.auth.callback.CallbackHandler;
+import static org.apache.hadoop.util.PlatformName.IBM_JAVA;
+import org.apache.hadoop.security.authentication.util.KerberosUtil;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 /**
  * Verify that logins work
@@ -130,13 +134,24 @@ public class TestSecureLogins extends AbstractSecureRegistryTest {
 
   @Test
   public void testKerberosAuth() throws Throwable {
+   
     File krb5conf = getKdc().getKrb5conf();
     String krbConfig = FileUtils.readFileToString(krb5conf);
     LOG.info("krb5.conf at {}:\n{}", krb5conf, krbConfig);
     Subject subject = new Subject();
-
-    final Krb5LoginModule krb5LoginModule = new Krb5LoginModule();
+    Class<?> kerb5LoginClass = Class.forName(KerberosUtil.getKrb5LoginModuleName());
+    Constructor<?> kerb5LoginConstr = kerb5LoginClass.getConstructor();
+    Object kerb5LoginObject = kerb5LoginConstr.newInstance();
     final Map<String, String> options = new HashMap<String, String>();
+    if(IBM_JAVA){
+    options.put("useKeytab", keytab_alice.getAbsolutePath().startsWith("file://") ?
+              keytab_alice.getAbsolutePath() : "file://" +  keytab_alice.getAbsolutePath());
+    options.put("principal", ALICE_LOCALHOST);
+    options.put("refreshKrb5Config", "true");
+    options.put("credsType", "both");
+    options.put("useDefaultCcache", "true");
+    options.put("renewTGT", "true");
+    }else{
     options.put("keyTab", keytab_alice.getAbsolutePath());
     options.put("principal", ALICE_LOCALHOST);
     options.put("debug", "true");
@@ -147,15 +162,17 @@ public class TestSecureLogins extends AbstractSecureRegistryTest {
     options.put("storeKey", "true");
     options.put("useKeyTab", "true");
     options.put("useTicketCache", "true");
-
-    krb5LoginModule.initialize(subject, null,
-        new HashMap<String, String>(),
-        options);
-
-    boolean loginOk = krb5LoginModule.login();
+   }
+    Method methodInitialize =
+	 kerb5LoginObject.getClass().getMethod("initialize", Subject.class, CallbackHandler.class, Map.class, Map.class);
+    methodInitialize.invoke(kerb5LoginObject, subject, null, new HashMap<String, String>(), options );
+    Method methodLogin = kerb5LoginObject.getClass().getMethod("login");
+    boolean loginOk = (Boolean) methodLogin.invoke(kerb5LoginObject);
     assertTrue("Failed to login", loginOk);
-    boolean commitOk = krb5LoginModule.commit();
+    Method methodCommit = kerb5LoginObject.getClass().getMethod("commit");
+    boolean commitOk = (Boolean) methodLogin.invoke(kerb5LoginObject);
     assertTrue("Failed to Commit", commitOk);
+ 
   }
 
   @Test
