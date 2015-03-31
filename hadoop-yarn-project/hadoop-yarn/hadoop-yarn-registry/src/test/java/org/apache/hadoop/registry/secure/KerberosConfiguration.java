@@ -90,6 +90,7 @@ class KerberosConfiguration extends javax.security.auth.login.Configuration {
                       options)};
     }
 
+  @Override
   public String toString() {
     return "KerberosConfiguration with principal " + principal;
   }
