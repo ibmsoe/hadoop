@@ -153,8 +153,8 @@ public class TestSecureLogins extends AbstractSecureRegistryTest {
     String ticketCache = System.getenv("KRB5CCNAME");
       if (ticketCache != null) {
       // IBM JAVA only respect system property and not env variable
-      //       // The first value searched when "useDefaultCcache" is used.
-      //             System.setProperty("KRB5CCNAME", ticketCache);
+      // The first value searched when "useDefaultCcache" is used.
+      System.setProperty("KRB5CCNAME", ticketCache);
       options.put("useDefaultCcache", "true");
       options.put("renewTGT", "true");
        } 
