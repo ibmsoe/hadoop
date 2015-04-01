@@ -143,18 +143,24 @@ public class TestSecureLogins extends AbstractSecureRegistryTest {
     Constructor<?> kerb5LoginConstr = kerb5LoginClass.getConstructor();
     Object kerb5LoginObject = kerb5LoginConstr.newInstance();
     final Map<String, String> options = new HashMap<String, String>();
+    options.put("debug", "true");
     if(IBM_JAVA){
     options.put("useKeytab", keytab_alice.getAbsolutePath().startsWith("file://") ?
               keytab_alice.getAbsolutePath() : "file://" +  keytab_alice.getAbsolutePath());
     options.put("principal", ALICE_LOCALHOST);
     options.put("refreshKrb5Config", "true");
     options.put("credsType", "both");
-    options.put("useDefaultCcache", "true");
-    options.put("renewTGT", "true");
+    String ticketCache = System.getenv("KRB5CCNAME");
+      if (ticketCache != null) {
+      // IBM JAVA only respect system property and not env variable
+      //       // The first value searched when "useDefaultCcache" is used.
+      //             System.setProperty("KRB5CCNAME", ticketCache);
+      options.put("useDefaultCcache", "true");
+      options.put("renewTGT", "true");
+       } 
     }else{
     options.put("keyTab", keytab_alice.getAbsolutePath());
     options.put("principal", ALICE_LOCALHOST);
-    options.put("debug", "true");
     options.put("doNotPrompt", "true");
     options.put("isInitiator", "true");
     options.put("refreshKrb5Config", "true");
