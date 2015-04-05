@@ -72,6 +72,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import static org.apache.hadoop.util.PlatformName.IBM_JAVA;
 
 public class TestKMS {
 
@@ -188,6 +189,12 @@ public class TestKMS {
     @Override
     public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
       Map<String, String> options = new HashMap<String, String>();
+      if (IBM_JAVA) {
+       options.put("useKeytab",keytab.startsWith("file://") ? keytab : "file://" + keytab);
+       options.put("principal", principal);
+       options.put("refreshKrb5Config", "true");
+       options.put("credsType", "both");
+       } else {
       options.put("keyTab", keytab);
       options.put("principal", principal);
       options.put("useKeyTab", "true");
@@ -197,9 +204,16 @@ public class TestKMS {
       options.put("renewTGT", "true");
       options.put("refreshKrb5Config", "true");
       options.put("isInitiator", Boolean.toString(isInitiator));
+      }
       String ticketCache = System.getenv("KRB5CCNAME");
       if (ticketCache != null) {
+      if (IBM_JAVA) { 
+      System.setProperty("KRB5CCNAME", ticketCache);
+      options.put("useDefaultCcache", "true");
+      options.put("renewTGT", "true");
+       } else {
         options.put("ticketCache", ticketCache);
+      }
       }
       options.put("debug", "true");
 
