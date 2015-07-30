@@ -113,6 +113,15 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64")
 set(D main/native/src/org/apache/hadoop)
 set(T main/native/src/test/org/apache/hadoop)
 
+if (${CMAKE_SYSTEM_NAME} MATCHES "AIX")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -maix64")
+    foreach(step CREATE APPEND FINISH)
+        string(REPLACE "<CMAKE_AR>" "<CMAKE_AR> -X 64"
+          CMAKE_C_ARCHIVE_${step} "${CMAKE_C_ARCHIVE_${step}}")
+    endforeach() 
+    set(ENV{OBJECT_MODE} "64")
+endif()
+
 GET_FILENAME_COMPONENT(HADOOP_ZLIB_LIBRARY ${ZLIB_LIBRARIES} NAME)
 
 SET(STORED_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})

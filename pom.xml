@@ -89,6 +89,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
     <!-- platform encoding override -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <aix.cmake.options></aix.cmake.options>
   </properties>
 
   <modules>
@@ -424,6 +425,15 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
           </plugin>
         </plugins>
       </build>
+    </profile>
+    <profile>
+      <id>aix</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <properties>
+        <aix.cmake.options>-DJAVA_JVM_LIBRARY=${env.JAVA_HOME}/jre/lib/ppc64/j9vm/libjvm.so -DJAVA_AWT_LIBRARY=${env.JAVA_HOME}/jre/lib/ppc64/libawt.so -DSNAPPY_LIBRARY=/usr/local/lib/libsnappy.a -DSNAPPY_INCLUDE_DIR=/usr/local/include -DTARGET_ARCHIVES_MAY_BE_SHARED_LIBS=false</aix.cmake.options>
+      </properties>
     </profile>
     <profile>
       <id>clover</id>

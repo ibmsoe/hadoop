@@ -28,6 +28,10 @@
 #include "org_apache_hadoop_io_compress_zlib.h"
 #include "org_apache_hadoop_io_compress_zlib_ZlibCompressor.h"
 
+#ifdef _AIX
+#include "dladdr.h"
+#endif
+
 static jfieldID ZlibCompressor_clazz;
 static jfieldID ZlibCompressor_stream;
 static jfieldID ZlibCompressor_uncompressedDirectBuf;

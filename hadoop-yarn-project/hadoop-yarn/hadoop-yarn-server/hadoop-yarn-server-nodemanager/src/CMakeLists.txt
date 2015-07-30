@@ -36,18 +36,37 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall -O2 -D_GNU_SOURCE")
 # note: can't enable -D_LARGEFILE: see MAPREDUCE-4258
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_REENTRANT")
 
+if (${CMAKE_SYSTEM_NAME} MATCHES "AIX")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -maix64")
+    foreach(step CREATE APPEND FINISH)
+        string(REPLACE "<CMAKE_AR>" "<CMAKE_AR> -X 64"
+          CMAKE_C_ARCHIVE_${step} "${CMAKE_C_ARCHIVE_${step}}")
+    endforeach() 
+    set(ENV{OBJECT_MODE} "64")
+endif()
+
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_BINARY_DIR}
     main/native/container-executor
     main/native/container-executor/impl
 )
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "AIX")
+    include_directories(/opt/freeware/include)
+    add_library(cextras STATIC IMPORTED)
+    set_property(TARGET cextras PROPERTY IMPORTED_LOCATION /opt/freeware/lib/libcextras.a)
+endif()
+
 CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/config.h.cmake ${CMAKE_BINARY_DIR}/config.h)
 
 add_library(container
     main/native/container-executor/impl/configuration.c
     main/native/container-executor/impl/container-executor.c
 )
+if (${CMAKE_SYSTEM_NAME} MATCHES "AIX")
+    target_link_libraries(container cextras)
+endif()
 
 add_executable(container-executor
     main/native/container-executor/impl/main.c

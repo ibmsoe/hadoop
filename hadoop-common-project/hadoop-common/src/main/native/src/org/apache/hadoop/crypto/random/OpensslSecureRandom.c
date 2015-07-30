@@ -25,7 +25,9 @@
 #ifdef UNIX
 #include <pthread.h>
 #include <unistd.h>
+#ifndef _AIX
 #include <sys/syscall.h>
+#endif
 #include <sys/types.h>
 #endif
 
@@ -274,7 +276,14 @@ static void pthreads_locking_callback(int mode, int type, char *file, int line)
 
 static unsigned long pthreads_thread_id(void)
 {
+#ifdef _AIX
+  pthread_t ptid = pthread_self();
+  uint64_t threadId = 0;
+  memcpy(&threadId, &ptid, min(sizeof(threadId), sizeof(ptid)));
+  return threadId;
+#else
   return (unsigned long)syscall(SYS_gettid);
+#endif
 }
 
 #endif /* UNIX */

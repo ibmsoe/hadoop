@@ -29,6 +29,10 @@
 
 #include <jni.h>
 
+#ifdef _AIX
+#include "dladdr.h"
+#endif
+
 JNIEXPORT jboolean JNICALL Java_org_apache_hadoop_util_NativeCodeLoader_buildSupportsSnappy
   (JNIEnv *env, jclass clazz)
 {

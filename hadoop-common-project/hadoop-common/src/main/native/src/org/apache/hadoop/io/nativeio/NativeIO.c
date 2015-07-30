@@ -34,8 +34,10 @@
 #include <sys/mman.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
+#ifndef _AIX
 #include <sys/syscall.h>
-#if !(defined(__FreeBSD__) || defined(__MACH__))
+#endif
+#if !(defined(__FreeBSD__) || defined(__MACH__)) && !defined(_AIX)
 #include <sys/sendfile.h>
 #endif
 #include <sys/time.h>
@@ -1136,7 +1138,7 @@ JNIEXPORT jlong JNICALL
 Java_org_apache_hadoop_io_nativeio_NativeIO_getMemlockLimit0(
 JNIEnv *env, jclass clazz)
 {
-#ifdef WINDOWS
+#ifndef RLIMIT_MEMLOCK
   return 0;
 #else
   struct rlimit rlim;

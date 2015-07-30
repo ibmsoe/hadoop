@@ -33,8 +33,14 @@
 #include <string.h>
 #include <limits.h>
 #include <sys/stat.h>
+#ifdef __linux
 #include <sys/mount.h>
+#endif
 #include <sys/wait.h>
+
+#ifdef _AIX
+#include <stdio.h> // For FILENAME_MAX
+#endif
 
 static const int DEFAULT_MIN_USERID = 1000;
 
@@ -826,7 +832,11 @@ static int copy_file(int input, const char* in_filename,
 		     const char* out_filename, mode_t perm) {
   const int buffer_size = 128*1024;
   char buffer[buffer_size];
+#ifdef _AIX
+  int out_fd = open(out_filename, O_WRONLY|O_CREAT|O_EXCL, perm);
+#else
   int out_fd = open(out_filename, O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW, perm);
+#endif
   if (out_fd == -1) {
     fprintf(LOGFILE, "Can't open %s for output - %s\n", out_filename, 
             strerror(errno));
@@ -1382,7 +1392,11 @@ void chown_dir_contents(const char *dir_path, uid_t uid, gid_t gid) {
   DIR *dp;
   struct dirent *ep;
 
+#ifdef _AIX
+  char *path_tmp = malloc(strlen(dir_path) + FILENAME_MAX + 2);
+#else
   char *path_tmp = malloc(strlen(dir_path) + NAME_MAX + 2);
+#endif
   if (path_tmp == NULL) {
     return;
   }

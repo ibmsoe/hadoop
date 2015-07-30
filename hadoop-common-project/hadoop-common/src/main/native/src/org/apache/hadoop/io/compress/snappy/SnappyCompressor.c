@@ -36,6 +36,10 @@
 
 #include "org_apache_hadoop_io_compress_snappy_SnappyCompressor.h"
 
+#ifdef _AIX
+#include "dladdr.h"
+#endif
+
 #define JINT_MAX 0x7fffffff
 
 static jfieldID SnappyCompressor_clazz;

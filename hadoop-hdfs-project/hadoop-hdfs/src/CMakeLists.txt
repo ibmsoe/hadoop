@@ -108,6 +108,14 @@ else (WIN32)
     set(OS_DIR main/native/libhdfs/os/posix)
     set(OS_LINK_LIBRARIES pthread)
     set(OUT_DIR target/usr/local/lib)
+    if (${CMAKE_SYSTEM_NAME} MATCHES "AIX")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -maix64")
+        foreach(step CREATE APPEND FINISH)
+            string(REPLACE "<CMAKE_AR>" "<CMAKE_AR> -X 64"
+              CMAKE_C_ARCHIVE_${step} "${CMAKE_C_ARCHIVE_${step}}")
+        endforeach() 
+        set(ENV{OBJECT_MODE} "64")
+    endif()
 endif (WIN32)
 
 include_directories(

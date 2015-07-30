@@ -24,6 +24,10 @@
  
 #include "org_apache_hadoop_crypto_OpensslCipher.h"
 
+#ifdef _AIX
+#include "dladdr.h"
+#endif
+
 #ifdef UNIX
 static EVP_CIPHER_CTX * (*dlsym_EVP_CIPHER_CTX_new)(void);
 static void (*dlsym_EVP_CIPHER_CTX_free)(EVP_CIPHER_CTX *);

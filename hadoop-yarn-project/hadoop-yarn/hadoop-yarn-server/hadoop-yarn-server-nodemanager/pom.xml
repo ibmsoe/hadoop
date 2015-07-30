@@ -204,7 +204,7 @@
                   <target>
                     <mkdir dir="${project.build.directory}/native/target"/>
                     <exec executable="cmake" dir="${project.build.directory}/native" failonerror="true">
-                      <arg line="${basedir}/src/ -DHADOOP_CONF_DIR=${container-executor.conf.dir} -DJVM_ARCH_DATA_MODEL=${sun.arch.data.model}"/>
+                      <arg line="${basedir}/src/ -DHADOOP_CONF_DIR=${container-executor.conf.dir} -DJVM_ARCH_DATA_MODEL=${sun.arch.data.model} ${aix.cmake.options}"/>
                       <env key="CFLAGS" value="${container-executor.additional_cflags}"/>
                     </exec>
                     <exec executable="make" dir="${project.build.directory}/native" failonerror="true">

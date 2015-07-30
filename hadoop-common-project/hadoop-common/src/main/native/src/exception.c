@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 jthrowable newExceptionV(JNIEnv* env, const char *name,
                          const char *fmt, va_list ap)
