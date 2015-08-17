@@ -52,6 +52,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import static org.apache.hadoop.registry.client.impl.zk.ZookeeperConfigOptions.*;
 import static org.apache.hadoop.registry.client.api.RegistryConstants.*;
 
+import static org.apache.hadoop.util.PlatformName.IBM_JAVA;
+
+
 /**
  * Implement the registry security ... a self contained service for
  * testability.

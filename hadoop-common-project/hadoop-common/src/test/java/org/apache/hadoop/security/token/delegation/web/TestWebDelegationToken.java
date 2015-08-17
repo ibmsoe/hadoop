@@ -74,6 +74,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
+import static org.apache.hadoop.util.PlatformName.IBM_JAVA;
+
+
 public class TestWebDelegationToken {
   private static final String OK_USER = "ok-user";
   private static final String FAIL_USER = "fail-user";
@@ -675,6 +678,12 @@ public class TestWebDelegationToken {
     @Override
     public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
       Map<String, String> options = new HashMap<String, String>();
+      if (IBM_JAVA) {
+       options.put("useKeytab",keytab.startsWith("file://") ? keytab : "file://" + keytab);
+       options.put("principal", principal);
+       options.put("refreshKrb5Config", "true");
+       options.put("credsType", "both");
+      } else {
       options.put("principal", principal);
       options.put("keyTab", keytab);
       options.put("useKeyTab", "true");
@@ -684,9 +693,16 @@ public class TestWebDelegationToken {
       options.put("renewTGT", "true");
       options.put("refreshKrb5Config", "true");
       options.put("isInitiator", "true");
+      } 
       String ticketCache = System.getenv("KRB5CCNAME");
       if (ticketCache != null) {
+      if (IBM_JAVA) {
+      System.setProperty("KRB5CCNAME", ticketCache);
+      options.put("useDefaultCcache", "true");
+      options.put("renewTGT", "true");
+      } else {
         options.put("ticketCache", ticketCache);
+      }
       }
       options.put("debug", "true");
 
