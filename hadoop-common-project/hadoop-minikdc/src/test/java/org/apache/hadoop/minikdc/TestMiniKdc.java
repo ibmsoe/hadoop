@@ -89,33 +89,42 @@ public class TestMiniKdc extends KerberosSecurityTestcase {
     }
 
     private static String getKrb5LoginModuleName() {
-      return System.getProperty("java.vendor").contains("IBM")
-              ? "com.ibm.security.auth.module.Krb5LoginModule"
-              : "com.sun.security.auth.module.Krb5LoginModule";
+      return (IBM_JAVA ? "com.ibm.security.auth.module.Krb5LoginModule"
+              : "com.sun.security.auth.module.Krb5LoginModule");
     }
 
     @Override
     public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
       Map<String, String> options = new HashMap<String, String>();
-      options.put("principal", principal);
-      options.put("refreshKrb5Config", "true");
       if (IBM_JAVA) {
-        options.put("useKeytab", keytab);
+        options.put("useKeytab",keytab.startsWith("file://") ? keytab : "file://" + keytab);
+        options.put("principal", principal);
+        options.put("refreshKrb5Config", "true");
         options.put("credsType", "both");
-      } else {
+       } else {
         options.put("keyTab", keytab);
+        options.put("principal", principal);
         options.put("useKeyTab", "true");
         options.put("storeKey", "true");
         options.put("doNotPrompt", "true");
         options.put("useTicketCache", "true");
         options.put("renewTGT", "true");
+        options.put("refreshKrb5Config", "true");
         options.put("isInitiator", Boolean.toString(isInitiator));
       }
       String ticketCache = System.getenv("KRB5CCNAME");
       if (ticketCache != null) {
-        options.put("ticketCache", ticketCache);
-      }
-      options.put("debug", "true");
+       if (IBM_JAVA) {
+    // IBM JAVA only respect system property and not env variable
+    // The first value searched when "useDefaultCcache" is used.
+    System.setProperty("KRB5CCNAME", ticketCache);
+    options.put("useDefaultCcache", "true");
+    options.put("renewTGT", "true");
+   } else {
+    options.put("ticketCache", ticketCache);
+   }
+   }
+   options.put("debug", "true");
 
       return new AppConfigurationEntry[]{
               new AppConfigurationEntry(getKrb5LoginModuleName(),
