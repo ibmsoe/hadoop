@@ -45,7 +45,6 @@ public class TestMiniKdc extends KerberosSecurityTestcase {
     Assert.assertNotSame(0, kdc.getPort());
   }
 
-  private static final boolean IBM_JAVA =  System.getProperty("java.vendor").contains("IBM");
 
   @Test
   public void testKeytabGen() throws Exception {
