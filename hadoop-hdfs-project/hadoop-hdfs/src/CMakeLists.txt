@@ -191,6 +191,7 @@ add_library(native_mini_dfs
 )
 target_link_libraries(native_mini_dfs
     ${JAVA_JVM_LIBRARY}
+    ${LIB_DL}
     ${OS_LINK_LIBRARIES}
 )
 
